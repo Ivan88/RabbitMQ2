@@ -1,4 +1,5 @@
 ﻿using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,26 +16,28 @@ namespace Receiver
 			using (var connection = factory.CreateConnection())
 			using (var channel = connection.CreateModel())
 			{
-				channel.QueueDeclare(queue: "hello Ivan",
+				channel.QueueDeclare(queue: "hello ivan",
 									 durable: false,
 									 exclusive: false,
 									 autoDelete: false,
 									 arguments: null);
 
-				string message = "Helo ivan";
+				var consumer = new EventingBasicConsumer(channel);
 
-				var body = Encoding.UTF8.GetBytes(message);
+				consumer.Received += (model, ea) =>
+				{
+					var body = ea.Body;
+					var message = Encoding.UTF8.GetString(body);
+					Console.WriteLine(" [x] Received {0}", message);
+				};
 
-				channel.BasicPublish(exchange: "",
-									 routingKey: "hello ivan",
-									 basicProperties: null,
-									 body: body);
+				channel.BasicConsume(queue: "hello ivan",
+									 autoAck: true,
+									 consumer: consumer);
 
-				Console.WriteLine(" [x] Sent {0}", message);
+				Console.WriteLine(" Press [enter] to exit.");
+				Console.ReadLine();
 			}
-
-			Console.WriteLine("Enter to exit.");
-			Console.ReadLine();
 		}
 	}
 }

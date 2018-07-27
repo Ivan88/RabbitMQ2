@@ -1,10 +1,8 @@
-﻿using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 
 namespace Receiver
 {
@@ -16,8 +14,8 @@ namespace Receiver
 			using (var connection = factory.CreateConnection())
 			using (var channel = connection.CreateModel())
 			{
-				channel.QueueDeclare(queue: "hello ivan",
-									 durable: false,
+				channel.QueueDeclare(queue: "durable_queue",
+									 durable: true,
 									 exclusive: false,
 									 autoDelete: false,
 									 arguments: null);
@@ -29,10 +27,17 @@ namespace Receiver
 					var body = ea.Body;
 					var message = Encoding.UTF8.GetString(body);
 					Console.WriteLine(" [x] Received {0}", message);
+
+					int dots = message.Split('.').Length - 1;
+					Thread.Sleep(dots >= 0 ? dots * 1000 : 0);
+
+					Console.WriteLine(" [x] Done");
+
+					channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
 				};
 
-				channel.BasicConsume(queue: "hello ivan",
-									 autoAck: true,
+				channel.BasicConsume(queue: "durable_queue",
+									 autoAck: false,
 									 consumer: consumer);
 
 				Console.WriteLine(" Press [enter] to exit.");

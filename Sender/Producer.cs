@@ -4,7 +4,7 @@ using RabbitMQ.Client;
 
 namespace Sender
 {
-	class Program
+	class Producer
 	{
 		static void Main(string[] args)
 		{
@@ -12,11 +12,13 @@ namespace Sender
 			using (var connection = factory.CreateConnection())
 			using (var channel = connection.CreateModel())
 			{
-				channel.QueueDeclare(queue: "durable_queue",
-									 durable: true,
-									 exclusive: false,
-									 autoDelete: false,
-									 arguments: null);
+				channel.ExchangeDeclare(exchange: "logs", type: "fanout");
+
+				//channel.QueueDeclare(queue: "durable_queue",
+				//					 durable: true,
+				//					 exclusive: false,
+				//					 autoDelete: false,
+				//					 arguments: null);
 
 				do
 				{
@@ -27,14 +29,14 @@ namespace Sender
 					if (line == "x")
 						break;
 
-					var properties = channel.CreateBasicProperties();
-					properties.Persistent = true;
+					//var properties = channel.CreateBasicProperties();
+					//properties.Persistent = true;
 
 					var body = Encoding.UTF8.GetBytes(line);
 
-					channel.BasicPublish(exchange: "",
-										 routingKey: "durable_queue",
-										 basicProperties: properties,
+					channel.BasicPublish(exchange: "logs",
+										 routingKey: "",
+										 basicProperties: null,
 										 body: body);
 
 					Console.WriteLine(" [x] Sent {0}", line);

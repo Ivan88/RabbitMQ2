@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Text;
-using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
 namespace Receiver
 {
-	class Program
+	class Consumer
 	{
 		static void Main(string[] args)
 		{
@@ -14,11 +13,19 @@ namespace Receiver
 			using (var connection = factory.CreateConnection())
 			using (var channel = connection.CreateModel())
 			{
-				channel.QueueDeclare(queue: "durable_queue",
-									 durable: true,
-									 exclusive: false,
-									 autoDelete: false,
-									 arguments: null);
+				channel.ExchangeDeclare(exchange: "logs", type: "fanout");
+
+				var queueName = channel.QueueDeclare().QueueName;
+				channel.QueueBind(queue: queueName,
+								  exchange: "logs",
+								  routingKey: "");
+
+				//channel.QueueDeclare(queue: "durable_queue",
+				//					 durable: true,
+				//					 exclusive: false,
+				//					 autoDelete: false,
+				//					 arguments: null);
+				Console.WriteLine(" [*] Waiting for logs.");
 
 				var consumer = new EventingBasicConsumer(channel);
 
@@ -28,16 +35,16 @@ namespace Receiver
 					var message = Encoding.UTF8.GetString(body);
 					Console.WriteLine(" [x] Received {0}", message);
 
-					int dots = message.Split('.').Length - 1;
-					Thread.Sleep(dots >= 0 ? dots * 1000 : 0);
+					//int dots = message.Split('.').Length - 1;
+					//Thread.Sleep(dots >= 0 ? dots * 1000 : 0);
 
 					Console.WriteLine(" [x] Done");
 
-					channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
+					//channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
 				};
 
-				channel.BasicConsume(queue: "durable_queue",
-									 autoAck: false,
+				channel.BasicConsume(queue: queueName,
+									 autoAck: true,
 									 consumer: consumer);
 
 				Console.WriteLine(" Press [enter] to exit.");
